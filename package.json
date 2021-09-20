@@ -1,0 +1,26 @@
+{
+  "name": "simplepush-notifications",
+  "version": "1.0.0",
+  "description": "Send https://simplepush.io notifications from Node.JS. Let's you send push notifications and encrypted push notifications to Android and iOS.",
+  "main": "index.js",
+  "dependencies": {
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/simplepush/simplepush-nodejs.git"
+  },
+  "keywords": [
+    "simplepush",
+    "notification",
+    "push notification",
+    "android",
+    "ios",
+    "encryption",
+    "encrypted push notification"
+  ],
+  "author": {
+    "name": "Timm Schäuble",
+    "email": "Timm.Schaeuble@gmail.com"
+  },
+  "homepage": "https://simplepush.io"
+}
