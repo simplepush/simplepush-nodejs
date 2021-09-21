@@ -11,7 +11,7 @@ const options = {
     }
 }
 
-exports.send = function({key, title, message, event, password, salt, err}) {
+exports.send = function({key, title, message, event, password, salt}, err) {
     if (key == null || message == null) {
         return err(new Error("Key and message cannot be empty"))
     }
