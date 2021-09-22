@@ -63,7 +63,7 @@ exports.send = function({key, title, message, event, password, salt}, err) {
 
     const req = https.request(options, res => {
         res.on('close', function() {
-            err(null)
+            err()
         })
     })
 
