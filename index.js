@@ -43,7 +43,8 @@ exports.send = function({key, title, message, event, password, salt}, err) {
             cipher.setAutoPadding(true)
             let encrypted = cipher.update(data, 'utf8', 'base64')
             encrypted += cipher.final('base64')
-            return encrypted
+            encryptedURLSafe = encrypted.replace('+', '-').replace('/', '_')
+            return encryptedURLSafe
         })
 
         let encryptedTitle = encrypt(title)
