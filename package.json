@@ -1,6 +1,6 @@
 {
   "name": "simplepush-notifications",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "description": "Send https://simplepush.io notifications from Node.JS. Let's you send push notifications and encrypted push notifications to Android and iOS.",
   "main": "index.js",
   "dependencies": {},
