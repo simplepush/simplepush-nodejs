@@ -40,7 +40,7 @@ exports.send = function({key, title, message, event, actions, password, salt}, e
         let ivBytes = crypto.randomBytes(IV_LENGTH)
 
         var encrypt = ((data) => {
-            if (data === null) {
+            if (data == null) {
                 return null
             }
 
