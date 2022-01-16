@@ -86,7 +86,7 @@ exports.send = function({key, title, message, event, actions, password, salt}, e
 
         res.on('end', function() {
             const response = JSON.parse(body)
-            if (response.feedbackId) {
+            if (response.feedbackId && feedbackCallback) {
                 queryFeedbackEndpoint(response.feedbackId, feedbackCallbackTimeout, feedbackCallback, err)
             }
         })
