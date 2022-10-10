@@ -21,6 +21,7 @@ exports.send = function({key, title, message, event, actions, password, salt}, e
     }
 
     var data
+    var encryptedActions
 
     if (password === undefined && salt === undefined) {
         data = JSON.stringify({
@@ -52,15 +53,39 @@ exports.send = function({key, title, message, event, actions, password, salt}, e
             return encryptedURLSafe
         })
 
+        var encryptActions = ((actions) => {
+            if (actions == null) {
+                return null
+            }
+
+            encrypted = []
+            actions.forEach(function (action) {
+                if (typeof action === 'string') {
+                    // Feedback Action
+                    encrypted.push(encrypt(action))
+                } else if (action.hasOwnProperty('name') && action.hasOwnProperty('url')) {
+                    // GET Action
+                    let actionEncrypted = {
+                        name: encrypt(action['name']),
+                        url: encrypt(action['url'])
+                    }
+
+                    encrypted.push(actionEncrypted)
+                }
+            })
+            return encrypted
+        })
+
         let encryptedTitle = encrypt(title)
         let encryptedMessage = encrypt(message)
+        encryptedActions = encryptActions(actions)
 
         data = JSON.stringify({
             key: key,
             title: encryptedTitle,
             msg: encryptedMessage,
             event: event,
-            actions: actions,
+            actions: encryptedActions,
             encrypted: 'true',
             iv: ivBytes.toString('hex')
         })
@@ -87,7 +112,7 @@ exports.send = function({key, title, message, event, actions, password, salt}, e
         res.on('end', function() {
             const response = JSON.parse(body)
             if (response.feedbackId && feedbackCallback) {
-                queryFeedbackEndpoint(response.feedbackId, feedbackCallbackTimeout, feedbackCallback, err)
+                queryFeedbackEndpoint(response.feedbackId, actions, encryptedActions, feedbackCallbackTimeout, feedbackCallback, err)
             }
         })
     })
@@ -100,7 +125,7 @@ exports.send = function({key, title, message, event, actions, password, salt}, e
     req.end()
 }
 
-async function queryFeedbackEndpoint(feedbackId, timeout, callback, err) {
+async function queryFeedbackEndpoint(feedbackId, actions, encryptedActions, timeout, callback, err) {
     var stop = false
     var n = 0
     var start = Date.now() / 1000 | 0
@@ -122,8 +147,17 @@ async function queryFeedbackEndpoint(feedbackId, timeout, callback, err) {
                 const r = JSON.parse(body)
                 if (r.success && r.action_selected) {
                     stop = true
+
+                    var selectedAction
+                    if (encryptedActions == null) {
+                        selectedAction = r.action_selected
+                    } else {
+                        let idx = encryptedActions.indexOf(r.action_selected)
+                        selectedAction = actions[idx]
+                    }
+
                     return callback({
-                            actionSelected: r.action_selected,
+                            actionSelected: selectedAction,
                             actionSelectedAt: r.action_selected_at,
                             actionDeliveredAt: r.action_delivered_at,
                             feedbackId: feedbackId
