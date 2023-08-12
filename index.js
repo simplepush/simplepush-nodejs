@@ -3,7 +3,7 @@ const crypto = require('crypto')
 
 const url = 'api.simplepush.io'
 
-exports.send = function({key, title, message, event, actions, password, salt}, err, feedbackCallback = null, feedbackCallbackTimeout = 60) {
+exports.send = function({key, title, message, attachments, event, actions, password, salt}, err, feedbackCallback = null, feedbackCallbackTimeout = 60) {
     if (key == null || message == null) {
         return err(new SimplepushError("Key and message cannot be empty"))
     }
@@ -20,14 +20,23 @@ exports.send = function({key, title, message, event, actions, password, salt}, e
         }
     }
 
+
+    if (Array.isArray(attachments) && attachments.length > 0) {
+        if (!attachments.every(a => (typeof a === "string" || (a.hasOwnProperty('thumbnail') && a.hasOwnProperty('video'))))) {
+            return err(new SimplepushError("Attachments malformed"))
+        }
+    }
+
     var data
     var encryptedActions
+    var encryptedAttachments
 
     if (password === undefined && salt === undefined) {
         data = JSON.stringify({
             key: key,
             title: title,
             msg: message,
+            attachments: attachments,
             event: event,
             actions: actions
         })
@@ -51,6 +60,29 @@ exports.send = function({key, title, message, event, actions, password, salt}, e
             encrypted += cipher.final('base64')
             encryptedURLSafe = encrypted.replace(/\+/g, '-').replace(/\//g, '_')
             return encryptedURLSafe
+        })
+
+        var encryptAttachments = ((attachments) => {
+            if (attachments == null) {
+                return null
+            }
+
+            encrypted = []
+            attachments.forEach(function (attachment) {
+                if (typeof attachment === 'string') {
+                    // Simple attachment
+                    encrypted.push(encrypt(attachment))
+                } else if (attachment.hasOwnProperty('thumbnail') && attachment.hasOwnProperty('video')) {
+                    // Video with thumbnail
+                    let attachmentEncrypted = {
+                        thumbnail: encrypt(attachment['thumbnail']),
+                        video: encrypt(attachment['video'])
+                    }
+
+                    encrypted.push(attachmentEncrypted)
+                }
+            })
+            return encrypted
         })
 
         var encryptActions = ((actions) => {
@@ -79,11 +111,13 @@ exports.send = function({key, title, message, event, actions, password, salt}, e
         let encryptedTitle = encrypt(title)
         let encryptedMessage = encrypt(message)
         encryptedActions = encryptActions(actions)
+        encryptedAttachments = encryptAttachments(attachments)
 
         data = JSON.stringify({
             key: key,
             title: encryptedTitle,
             msg: encryptedMessage,
+            attachments: encryptedAttachments,
             event: event,
             actions: encryptedActions,
             encrypted: 'true',
