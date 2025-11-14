@@ -138,6 +138,9 @@ exports.send = function({key, title, message, attachments, event, actions, passw
     }
 
     const req = https.request(options, res => {
+        if (res.statusCode !== 200) {
+            return err(new SimplepushError("Unexpected status code: " + res.statusCode))
+        }
         var body = ''
         res.on('data', function(chunk) {
             body += chunk
@@ -172,35 +175,40 @@ async function queryFeedbackEndpoint(feedbackId, actions, encryptedActions, time
 
     while (!stop) {
         const req = https.request(options, res => {
-            var body = ''
-            res.on('data', function(chunk) {
-                body += chunk
-            })
+            if (res.statusCode === 200) {
+                var body = ''
+                res.on('data', function (chunk) {
+                    body += chunk
+                })
 
-            res.on('end', function() {
-                const r = JSON.parse(body)
-                if (r.success && r.action_selected) {
-                    stop = true
+                res.on('end', function () {
+                    const r = JSON.parse(body)
+                    if (r.success && r.action_selected) {
+                        stop = true
 
-                    var selectedAction
-                    if (encryptedActions == null) {
-                        selectedAction = r.action_selected
-                    } else {
-                        let idx = encryptedActions.indexOf(r.action_selected)
-                        selectedAction = actions[idx]
-                    }
+                        var selectedAction
+                        if (encryptedActions == null) {
+                            selectedAction = r.action_selected
+                        } else {
+                            let idx = encryptedActions.indexOf(r.action_selected)
+                            selectedAction = actions[idx]
+                        }
 
-                    return callback({
+                        return callback({
                             actionSelected: selectedAction,
                             actionSelectedAt: r.action_selected_at,
                             actionDeliveredAt: r.action_delivered_at,
                             feedbackId: feedbackId
                         })
-                } else if (!r.success) {
-                    stop = true
-                    return err(new SimplepushError(`Feedback ${feedbackId} expired or doesn't exist`))
-                }
-            })
+                    } else if (!r.success) {
+                        stop = true
+                        return err(new SimplepushError(`Feedback ${feedbackId} expired or doesn't exist`))
+                    }
+                })
+            } else {
+                wait(5000)
+                console.log("Unexpected status code " + res.statusCode + " when querying feedback endpoint for feedback " + feedbackId)
+            }
         })
 
         req.on('error', error => {
